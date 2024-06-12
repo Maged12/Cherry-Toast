@@ -59,7 +59,6 @@ class ExampleApp extends StatelessWidget {
               child: const Text('🍒 Info Cherry Toast'),
               onPressed: () {
                 CherryToast.info(
-                  disableToastAnimation: true,
                   title: const Text(
                     'Cherry toast title',
                     style: TextStyle(
@@ -68,8 +67,11 @@ class ExampleApp extends StatelessWidget {
                   ),
                   action: const Text('Toast content description'),
                   inheritThemeColors: true,
-                  actionHandler: () {},
-                  onToastClosed: () {},
+                  animationType: AnimationType.fromLeft,
+                  toastDuration: Duration(seconds: 20),
+                  onTap: () {
+                    print("Tapped");
+                  },
                 ).show(context);
               },
             ),

@@ -14,6 +14,7 @@ class CherryToast extends StatefulWidget {
   CherryToast({
     Key? key,
     this.title,
+    this.onTap,
     required this.icon,
     required this.themeColor,
     this.iconColor = Colors.black,
@@ -65,6 +66,7 @@ class CherryToast extends StatefulWidget {
       milliseconds: 1500,
     ),
     this.animationCurve = Curves.ease,
+    this.onTap,
     this.animationType = AnimationType.fromLeft,
     this.autoDismiss = true,
     this.toastDuration = const Duration(
@@ -95,6 +97,7 @@ class CherryToast extends StatefulWidget {
     Key? key,
     this.title,
     this.action,
+    this.onTap,
     this.actionHandler,
     this.backgroundColor = defaultBackgroundColor,
     this.shadowColor = defaultShadowColor,
@@ -133,6 +136,7 @@ class CherryToast extends StatefulWidget {
   CherryToast.warning({
     Key? key,
     this.title,
+    this.onTap,
     this.action,
     this.actionHandler,
     this.description,
@@ -199,6 +203,7 @@ class CherryToast extends StatefulWidget {
     this.disableToastAnimation = false,
     this.inheritThemeColors = false,
     this.onToastClosed,
+    this.onTap,
   }) : super(key: key) {
     assert(
       title != null || description != null,
@@ -233,10 +238,13 @@ class CherryToast extends StatefulWidget {
   ///this parameter is only available on the default constructor
   ///for the built-in themes the color  will be set automatically
   late Color iconColor;
+
   //background color of container
   final Color backgroundColor;
+
   //box shadow color of container
   final Color shadowColor;
+
   //Custom widget displayed at the place of the predefined icons
   final Widget? iconWidget;
 
@@ -313,6 +321,8 @@ class CherryToast extends StatefulWidget {
   ///Define whether the icon will be  rendered or not
   ///
   final bool displayIcon;
+
+  final void Function()? onTap;
 
   ///Define wether the animation on the icon will be rendered or not
   ///
@@ -543,49 +553,68 @@ class _CherryToastState extends State<CherryToast>
           height: widget.height,
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Row(
-                    crossAxisAlignment:
-                        widget.description == null && widget.action == null
-                            ? CrossAxisAlignment.center
-                            : CrossAxisAlignment.start,
-                    children: [
-                      //TODO refactor `iconWidget` and `titleWidget` to avoid duplication
-                      if (widget.iconWidget != null)
-                        widget.iconWidget!
-                      else if (widget.displayIcon)
-                        CherryToastIcon(
-                          color: widget.themeColor,
-                          icon: widget.icon,
-                          iconSize: widget.iconSize,
-                          iconColor: widget.iconColor,
-                          enableAnimation: widget.enableIconAnimation,
-                        )
-                      else
-                        Container(),
-                      renderToastContent(),
-                    ],
-                  ),
-                ),
-                if (widget.displayCloseButton)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: 10,
-                      right: 10,
+            child: InkWell(
+              onTap: () {
+                widget.onTap?.call();
+                _closeOverlay();
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      crossAxisAlignment:
+                          widget.description == null && widget.action == null
+                              ? CrossAxisAlignment.center
+                              : CrossAxisAlignment.start,
+                      children: [
+                        //TODO refactor `iconWidget` and `titleWidget` to avoid duplication
+                        if (widget.iconWidget != null)
+                          widget.iconWidget!
+                        else if (widget.displayIcon)
+                          CherryToastIcon(
+                            color: widget.themeColor,
+                            icon: widget.icon,
+                            iconSize: widget.iconSize,
+                            iconColor: widget.iconColor,
+                            enableAnimation: widget.enableIconAnimation,
+                          )
+                        else
+                          Container(),
+                        renderToastContent(),
+                      ],
                     ),
-                    child: renderCloseButton(context),
                   ),
-              ],
+                  if (widget.displayCloseButton)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: 10,
+                        right: 10,
+                      ),
+                      child: renderCloseButton(context),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  void _closeOverlay() {
+    if (!widget.disableToastAnimation) {
+      slideController.reverse();
+    }
+    autoDismissTimer?.cancel();
+    Timer(
+      widget.animationDuration,
+      () {
+        widget.closeOverlay();
+      },
     );
   }
 
@@ -594,18 +623,7 @@ class _CherryToastState extends State<CherryToast>
   ///
   InkWell renderCloseButton(BuildContext context) {
     return InkWell(
-      onTap: () {
-        if (!widget.disableToastAnimation) {
-          slideController.reverse();
-        }
-        autoDismissTimer?.cancel();
-        Timer(
-          widget.animationDuration,
-          () {
-            widget.closeOverlay();
-          },
-        );
-      },
+      onTap: _closeOverlay,
       child: Icon(
         Icons.close,
         color: Colors.grey[500],
